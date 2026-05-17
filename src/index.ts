@@ -3,7 +3,6 @@ import { webcrypto } from "crypto";
 import { loadConfig, ConfigError, type Config } from "./config.js";
 import { createLogger } from "./logger.js";
 import { ClobService } from "./clob.js";
-import { setupProxy } from "./proxy.js";
 import { DataApiClient } from "./dataApi.js";
 import { CopyTrader } from "./copyTrader.js";
 import { RedeemService } from "./redeem.js";
@@ -41,9 +40,6 @@ const main = async () => {
     throw err;
   }
 
-  // Setup proxy if configured (for bypassing geoblocks)
-  setupProxy(config.proxyUrl);
-
   const logger = createLogger(config.debug);
   const state = await loadState(config.stateFile);
 
@@ -52,6 +48,7 @@ const main = async () => {
       host: config.clobHost,
       chainId: config.chainId,
       privateKey: config.privateKey,
+      rpcUrl: config.rpcUrl,
       signatureType: config.signatureType,
       funderAddress: config.funderAddress,
       apiCreds: config.apiCreds,
@@ -68,7 +65,7 @@ const main = async () => {
           relayerUrl: config.relayerUrl,
           chainId: config.chainId,
           privateKey: config.privateKey,
-          rpcUrl: config.rpcUrl!,
+          rpcUrl: config.rpcUrl,
           txType: config.relayerTxType,
           builderCreds: config.builderCreds,
           builderSigningUrl: config.builderSigningUrl,

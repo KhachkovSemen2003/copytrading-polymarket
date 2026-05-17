@@ -48,7 +48,7 @@ export interface Config {
   builderCreds?: BuilderCreds;
   builderSigningUrl?: string;
   builderSigningToken?: string;
-  rpcUrl?: string;
+  rpcUrl: string;
   maxSeenTradesAgeSec: number;
   proxyUrl?: string;
 }
@@ -207,14 +207,13 @@ export const loadConfig = (): Config => {
 
   const builderSigningUrl = getEnv("BUILDER_SIGNING_URL");
   const builderSigningToken = getEnv("BUILDER_SIGNING_TOKEN");
-  const rpcUrl = getEnv("RPC_URL");
+  const rpcUrl = requireEnv("RPC_URL");
 
   if (!profileAddress) {
     throw new ConfigError("PROFILE_ADDRESS or FUNDER_ADDRESS is required to query your positions.");
   }
 
   if (autoRedeem) {
-    if (!rpcUrl) throw new ConfigError("RPC_URL is required when AUTO_REDEEM=true");
     const hasLocalCreds = !!builderCreds;
     const hasRemoteCreds = !!builderSigningUrl && !!builderSigningToken;
     if (!hasLocalCreds && !hasRemoteCreds) {
