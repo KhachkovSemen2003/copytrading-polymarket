@@ -1,12 +1,17 @@
 import {
   ApiKeyCreds,
+  Chain,
   ClobClient,
   OrderType,
   Side,
-  TickSize,
-} from "@polymarket/clob-client";
-import { Wallet } from "ethers";
+  SignatureTypeV2,
+  type TickSize,
+} from "@polymarket/clob-client-v2";
+import { createWalletClient, http } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 import { Logger } from "./logger.js";
+
+export { Side };
 
 export interface ClobConfig {
   host: string;
@@ -40,45 +45,44 @@ export class ClobService {
   }
 
   static async init(config: ClobConfig, logger: Logger): Promise<ClobService> {
-    const signer = new Wallet(config.privateKey);
-    const temp = new ClobClient(
-      config.host,
-      config.chainId,
-      signer,
-      undefined,
-      config.signatureType,
-      config.funderAddress,
-    );
+    const rawKey = config.privateKey.startsWith("0x")
+      ? config.privateKey
+      : `0x${config.privateKey}`;
+    const account = privateKeyToAccount(rawKey as `0x${string}`);
+    const signer = createWalletClient({ account, transport: http() });
+
+    const chain = config.chainId as Chain;
+    const signatureType = config.signatureType as SignatureTypeV2;
 
     let creds = config.apiCreds;
-    if (!creds) {
+    if (!ClobService.isValidCreds(creds)) {
       logger.info("Deriving Polymarket API keys");
-      const derived = await temp.deriveApiKey();
+      const tempClient = new ClobClient({
+        host: config.host,
+        chain,
+        signer,
+        signatureType,
+        funderAddress: config.funderAddress,
+      });
+      const derived = await tempClient.createOrDeriveApiKey();
       if (ClobService.isValidCreds(derived)) {
         creds = derived;
-        logger.info("Derived API keys.");
+        logger.info("API keys ready.");
       } else {
-        logger.warn("No existing API keys found, attempting create");
-        const created = await temp.createApiKey();
-        if (ClobService.isValidCreds(created)) {
-          creds = created;
-          logger.info("Created API keys.");
-        } else {
-          throw new Error(
-            "Unable to create or derive API keys. Check SIGNATURE_TYPE, PRIVATE_KEY, and FUNDER_ADDRESS/PROFILE_ADDRESS.",
-          );
-        }
+        throw new Error(
+          "Unable to create or derive API keys. Check SIGNATURE_TYPE, PRIVATE_KEY, and FUNDER_ADDRESS/PROFILE_ADDRESS.",
+        );
       }
     }
 
-    const client = new ClobClient(
-      config.host,
-      config.chainId,
+    const client = new ClobClient({
+      host: config.host,
+      chain,
       signer,
       creds,
-      config.signatureType,
-      config.funderAddress,
-    );
+      signatureType,
+      funderAddress: config.funderAddress,
+    });
     return new ClobService(client, logger);
   }
 
@@ -97,7 +101,7 @@ export class ClobService {
     return meta;
   }
 
-  private roundToTick(price: number, tickSize: TickSize, side: Side): number {
+  roundToTick(price: number, tickSize: TickSize, side: Side): number {
     const tick = Number(tickSize);
     if (!Number.isFinite(tick) || tick <= 0) return price;
     const factor = 1 / tick;
@@ -145,11 +149,17 @@ export class ClobService {
       { tickSize: meta.tickSize, negRisk: meta.negRisk },
       OrderType.GTC,
     );
-    if (resp?.error) {
-      throw new Error(resp.error);
+
+    // V2 response: ClobErrorResponseBody = { error: string }
+    //              OrderResponse          = { success: boolean, errorMsg: string, ... }
+    if (!resp) return;
+    const errResp = resp as { error?: string };
+    if (errResp.error) {
+      throw new Error(errResp.error);
     }
-    if (resp?.status && resp.status >= 400) {
-      throw new Error(`Order failed (status ${resp.status})`);
+    const orderResp = resp as { success?: boolean; errorMsg?: string };
+    if (orderResp.success === false) {
+      throw new Error(orderResp.errorMsg || "Order rejected by server");
     }
   }
 }

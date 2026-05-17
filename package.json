@@ -12,9 +12,12 @@
   "dependencies": {
     "@polymarket/builder-relayer-client": "^0.0.8",
     "@polymarket/builder-signing-sdk": "^0.0.8",
-    "@polymarket/clob-client": "^5.2.1",
+    "@polymarket/clob-client-v2": "^1.0.6",
+    "axios": "^1.16.1",
     "dotenv": "^17.2.3",
     "ethers": "^5.8.0",
+    "https-proxy-agent": "^9.0.0",
+    "socks-proxy-agent": "^10.0.0",
     "viem": "^2.44.4"
   },
   "devDependencies": {

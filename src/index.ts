@@ -3,6 +3,7 @@ import { webcrypto } from "crypto";
 import { loadConfig, ConfigError, type Config } from "./config.js";
 import { createLogger } from "./logger.js";
 import { ClobService } from "./clob.js";
+import { setupProxy } from "./proxy.js";
 import { DataApiClient } from "./dataApi.js";
 import { CopyTrader } from "./copyTrader.js";
 import { RedeemService } from "./redeem.js";
@@ -39,6 +40,10 @@ const main = async () => {
     }
     throw err;
   }
+
+  // Setup proxy if configured (for bypassing geoblocks)
+  setupProxy(config.proxyUrl);
+
   const logger = createLogger(config.debug);
   const state = await loadState(config.stateFile);
 

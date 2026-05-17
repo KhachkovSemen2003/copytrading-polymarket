@@ -50,6 +50,7 @@ export interface Config {
   builderSigningToken?: string;
   rpcUrl?: string;
   maxSeenTradesAgeSec: number;
+  proxyUrl?: string;
 }
 
 export class ConfigError extends Error {
@@ -225,6 +226,9 @@ export const loadConfig = (): Config => {
 
   const maxSeenTradesAgeSec = parseNumber("MAX_SEEN_TRADES_AGE_SEC", 60 * 60 * 24 * 7);
 
+  // Proxy configuration (for bypassing geoblocks)
+  const proxyUrl = getEnv("PROXY_URL") || getEnv("HTTP_PROXY") || getEnv("HTTPS_PROXY");
+
   return {
     clobHost,
     dataApiHost,
@@ -259,5 +263,6 @@ export const loadConfig = (): Config => {
     builderSigningToken,
     rpcUrl,
     maxSeenTradesAgeSec,
+    proxyUrl,
   };
 };
