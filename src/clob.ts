@@ -17,6 +17,7 @@ export interface ClobConfig {
   host: string;
   chainId: number;
   privateKey: string;
+  rpcUrl: string;
   signatureType: number;
   funderAddress?: string;
   apiCreds?: ApiKeyCreds;
@@ -49,7 +50,7 @@ export class ClobService {
       ? config.privateKey
       : `0x${config.privateKey}`;
     const account = privateKeyToAccount(rawKey as `0x${string}`);
-    const signer = createWalletClient({ account, transport: http() });
+    const signer = createWalletClient({ account, transport: http(config.rpcUrl) });
 
     const chain = config.chainId as Chain;
     const signatureType = config.signatureType as SignatureTypeV2;
