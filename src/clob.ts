@@ -124,7 +124,7 @@ export class ClobService {
     side: Side;
     price: number;
     size: number;
-  }): Promise<void> {
+  }): Promise<boolean> {
     const { tokenId, side } = params;
     const meta = await this.getMarketMeta(tokenId);
 
@@ -132,12 +132,12 @@ export class ClobService {
     const size = params.size;
 
     if (size < meta.minOrderSize) {
-      this.logger.warn("Order size below minimum", {
+      this.logger.warn("Order size below minimum, skipping", {
         tokenId,
         size,
         min: meta.minOrderSize,
       });
-      return;
+      return false;
     }
 
     const resp = await this.client.createAndPostOrder(
@@ -153,7 +153,7 @@ export class ClobService {
 
     // V2 response: ClobErrorResponseBody = { error: string }
     //              OrderResponse          = { success: boolean, errorMsg: string, ... }
-    if (!resp) return;
+    if (!resp) return false;
     const errResp = resp as { error?: string };
     if (errResp.error) {
       throw new Error(errResp.error);
@@ -162,5 +162,6 @@ export class ClobService {
     if (orderResp.success === false) {
       throw new Error(orderResp.errorMsg || "Order rejected by server");
     }
+    return true;
   }
 }

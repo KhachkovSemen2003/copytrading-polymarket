@@ -190,23 +190,25 @@ export class CopyTrader {
     }
 
     try {
-      await this.clob.placeLimitOrder({
+      const placed = await this.clob.placeLimitOrder({
         tokenId: trade.asset,
         side,
         price: trade.price,
         size,
       });
-      if (side === Side.BUY) {
-        ensureDailyVolume(this.state);
-        this.state.dailyVolume.spentUsd += notional;
+      if (placed) {
+        if (side === Side.BUY) {
+          ensureDailyVolume(this.state);
+          this.state.dailyVolume.spentUsd += notional;
+        }
+        this.logger.info("Order placed", {
+          side: trade.side,
+          tokenId: trade.asset,
+          price: trade.price,
+          size,
+          notional: formatUsd(notional),
+        });
       }
-      this.logger.info("Order placed", {
-        side: trade.side,
-        tokenId: trade.asset,
-        price: trade.price,
-        size,
-        notional: formatUsd(notional),
-      });
     } catch (err) {
       const message = (err as Error).message ?? "unknown error";
       if (message.includes("not enough balance") || message.includes("allowance")) {
